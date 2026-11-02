@@ -135,7 +135,7 @@ details[open] summary{margin-bottom:14px}
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyr8wgtM1PZjbCy_0WKH6sCve-KARzHxQqYqYILPHAYPUL1jPFFwpFxLM1kWXq9ZMuK/exec";
 /* ================================================================================== */
 
-const DEFAULTS = {title:"Our savings goal", target:500000, deadline:"", currency:"₹", names:["Ram","Pradee"], milestones:[125000,250000,375000,500000]};
+const DEFAULTS = {title:"Our savings goal", target:500000, deadline:"", currency:"₹", names:["Me","Wife"], milestones:[125000,250000,375000,500000]};
 const $ = id => document.getElementById(id);
 const LS = "savings-tracker-v1";
 let state = {entries:[], settings:{...DEFAULTS}};
@@ -152,7 +152,7 @@ const diffMonths = (a,b) => { const [y1,m1]=a.split("-").map(Number),[y2,m2]=b.s
 async function call(payload){
   if(!SCRIPT_URL){ return localCall(payload); }
   const opts = payload ? {method:"POST", body:JSON.stringify(payload)} : {};
-  const res = await fetch(SCRIPT_URL, opts);
+  const res = await fetch(SCRIPT_URL, {...opts, signal:AbortSignal.timeout(25000)});
   const data = await res.json();
   if(!data.ok) throw new Error(data.error||"Sheet error");
   return data;
@@ -168,9 +168,18 @@ function localCall(p){
   return {ok:true,entries:db.entries,settings:db.settings};
 }
 function apply(data){
-  state.entries = data.entries||[];
-  state.settings = {...DEFAULTS, ...(data.settings||{})};
+  const all = data.entries||[];
+  state.entries = all.map(e=>({...e, month:String(e.month||"").slice(0,7), amount:Number(e.amount)}))
+    .filter(e=>/^\d{4}-(0[1-9]|1[0-2])$/.test(e.month) && isFinite(e.amount));
+  const st = {...DEFAULTS, ...(data.settings||{})};
+  if(!Array.isArray(st.names)||st.names.length<2) st.names=DEFAULTS.names;
+  if(!Array.isArray(st.milestones)) st.milestones=DEFAULTS.milestones;
+  if(!(Number(st.target)>0)) st.target=DEFAULTS.target;
+  if(st.deadline && !/^\d{4}-\d{2}$/.test(st.deadline)) st.deadline="";
+  state.settings = st;
   render();
+  const bad = all.length-state.entries.length;
+  if(bad>0){ const b=$("banner"); b.className="banner"; b.textContent=bad+" row(s) in the Entries tab were skipped because the month or amount isn’t valid. Months must look like 2026-11."; }
 }
 async function load(){
   $("syncState").textContent = SCRIPT_URL ? "Syncing with Google Sheet…" : "";
@@ -180,7 +189,7 @@ async function load(){
 function showError(msg){ const b=$("banner"); b.className="banner err"; b.textContent=msg; }
 async function send(payload, btn){
   if(btn) btn.disabled=true;
-  try{ apply(await call(payload)); $("banner").className="banner hide"; $("syncState").textContent = SCRIPT_URL ? "Saved to Google Sheet" : ""; return true; }
+  try{ const d=await call(payload); $("banner").className="banner hide"; apply(d); $("syncState").textContent = SCRIPT_URL ? "Saved to Google Sheet" : ""; return true; }
   catch(e){ showError("Couldn’t save to Google Sheet. Nothing was lost on the sheet; try again."); return false; }
   finally{ if(btn) btn.disabled=false; }
 }
@@ -258,7 +267,8 @@ function drawCharts(c){
   const first=c.months[0], last=c.months[c.months.length-1];
   let end = s.deadline && s.deadline>last ? s.deadline : last;
   if(diffMonths(first,end)>120) end=addMonths(first,120);
-  const labels=[]; for(let m=first;m<=end;m=addMonths(m,1)) labels.push(m);
+  const labels=[]; const span=Math.max(0,Math.min(120,diffMonths(first,end)));
+  for(let i=0;i<=span;i++) labels.push(addMonths(first,i));
   const now=thisMonth(), cutoff = now>last?now:last;
   let run=0; const actual=labels.map(m=>{ run+=c.E.filter(e=>e.month===m).reduce((t,e)=>t+e.amount,0); return m<=cutoff?run:null; });
   const ds=[{label:"Saved",data:actual,borderColor:ca,backgroundColor:ca+"22",fill:true,tension:.25,pointRadius:3}];
