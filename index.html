@@ -169,8 +169,9 @@ function localCall(p){
 }
 function apply(data){
   const all = data.entries||[];
-  state.entries = all.map(e=>({...e, month:String(e.month||"").slice(0,7), amount:Number(e.amount)}))
-    .filter(e=>/^\d{4}-(0[1-9]|1[0-2])$/.test(e.month) && isFinite(e.amount));
+  const normMonth = v => { let m=String(v||"").trim(); if(/^\d{4}-\d{2}/.test(m)) return m.slice(0,7); const d=new Date(m); return isNaN(d)?m:d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"); };
+  state.entries = all.map(e=>({...e, month:normMonth(e.month), amount:Number(String(e.amount).replace(/[^0-9.\-]/g,""))}))
+    .filter(e=>/^\d{4}-(0[1-9]|1[0-2])$/.test(e.month) && isFinite(e.amount) && e.amount>0);
   const st = {...DEFAULTS, ...(data.settings||{})};
   if(!Array.isArray(st.names)||st.names.length<2) st.names=DEFAULTS.names;
   if(!Array.isArray(st.milestones)) st.milestones=DEFAULTS.milestones;
@@ -179,7 +180,7 @@ function apply(data){
   state.settings = st;
   render();
   const bad = all.length-state.entries.length;
-  if(bad>0){ const b=$("banner"); b.className="banner"; b.textContent=bad+" row(s) in the Entries tab were skipped because the month or amount isn’t valid. Months must look like 2026-11."; }
+  if(bad>0){ const ids=new Set(state.entries.map(x=>x.id)); const raw=all.find(e=>!ids.has(e.id)); const b=$("banner"); b.className="banner"; b.textContent=bad+" row(s) in the Entries tab were skipped because the month or amount isn’t valid. Months must look like 2026-11. First skipped row as received: "+JSON.stringify(raw); }
 }
 async function load(){
   $("syncState").textContent = SCRIPT_URL ? "Syncing with Google Sheet…" : "";
