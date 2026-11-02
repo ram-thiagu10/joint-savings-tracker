@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Our Savings Goal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{--bg:#f4f7f6;--card:#fff;--ink:#14232a;--mute:#5d6f76;--line:#dbe4e2;--a:#0f4c5c;--b:#e09f3e;--ok:#2f8f5b;--shadow:0 1px 2px rgba(20,35,42,.06)}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1a1e;--card:#172429;--ink:#e8f0ef;--mute:#93a7ad;--line:#27383e;--a:#4fb3c8;--b:#f0b559;--ok:#5cc58b;--shadow:none}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.5 Figtree,system-ui,sans-serif}
+h1,h2,.big{font-family:"Bricolage Grotesque",Figtree,sans-serif;margin:0;letter-spacing:-.01em}
+.wrap{max-width:1040px;margin:0 auto;padding:20px 16px 60px}
+header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+h1{font-size:26px;font-weight:700}
+.sub{color:var(--mute);font-size:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;box-shadow:var(--shadow);margin-bottom:16px}
+h2{font-size:18px;font-weight:700;margin-bottom:12px}
+.hero .big{font-size:44px;font-weight:700;line-height:1.1}
+.hero .of{color:var(--mute);font-size:15px}
+.track{position:relative;height:14px;border-radius:7px;background:var(--line);margin:34px 10px 46px}
+.fill{height:100%;border-radius:7px;background:linear-gradient(90deg,var(--a),var(--b));transition:width .6s ease}
+.ms{position:absolute;top:50%;transform:translate(-50%,-50%);width:22px;height:22px;border-radius:50%;background:var(--card);border:3px solid var(--line);display:grid;place-items:center;font-size:12px;color:#fff}
+.ms.done{background:var(--ok);border-color:var(--ok)}
+.ms span{position:absolute;top:28px;left:50%;transform:translateX(-50%);font-size:12px;color:var(--mute);white-space:nowrap;text-align:center;line-height:1.25}
+.ms.done span{color:var(--ink);font-weight:600}
+.grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.who{display:flex;align-items:center;gap:10px}
+.dot{width:12px;height:12px;border-radius:50%;flex:none}
+.who .big{font-size:26px}
+.stat{display:flex;flex-direction:column;gap:2px}
+.chip{display:inline-block;padding:2px 10px;border-radius:99px;font-size:13px;font-weight:600;background:color-mix(in srgb,var(--ok) 18%,transparent);color:var(--ok)}
+.chip.todo{background:var(--line);color:var(--mute)}
+form{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));align-items:end}
+label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--mute);font-weight:500}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible{outline:2px solid var(--a);outline-offset:2px}
+button{font:inherit;font-weight:600;border:0;border-radius:10px;padding:11px 18px;background:var(--a);color:#fff;cursor:pointer}
+@media (prefers-color-scheme:dark){button{color:#0f1a1e}}
+button.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+button.link{background:none;color:var(--mute);padding:4px 8px;font-weight:500}
+button:disabled{opacity:.55;cursor:wait}
+.charts{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+.cv{position:relative;height:260px}
+.scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:15px}
+th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{color:var(--mute);font-weight:500;font-size:13px}
+td.n{text-align:right;font-variant-numeric:tabular-nums}
+.banner{padding:10px 14px;border-radius:10px;font-size:14px;margin-bottom:16px;background:color-mix(in srgb,var(--b) 20%,transparent)}
+.err{background:color-mix(in srgb,#d64545 18%,transparent)}
+.hide{display:none}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+details summary{cursor:pointer;font-weight:600;font-family:"Bricolage Grotesque",sans-serif;font-size:18px}
+details[open] summary{margin-bottom:14px}
+.empty{color:var(--mute);padding:14px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div><h1 id="title">Our savings goal</h1><div class="sub" id="goalLine"></div></div>
+    <div class="sub" id="syncState"></div>
+  </header>
+
+  <div id="banner" class="banner hide"></div>
+
+  <section class="card hero">
+    <div class="of">Saved together</div>
+    <div class="big" id="total">₹0</div>
+    <div class="of" id="ofTarget"></div>
+    <div class="track" id="track"><div class="fill" id="fill" style="width:0"></div></div>
+    <div class="sub" id="paceLine"></div>
+  </section>
+
+  <section class="grid">
+    <div class="card"><div class="who"><span class="dot" id="dotA"></span><div class="stat"><span class="sub" id="nameA"></span><span class="big" id="totA"></span></div></div><div class="sub" id="shareA"></div></div>
+    <div class="card"><div class="who"><span class="dot" id="dotB"></span><div class="stat"><span class="sub" id="nameB"></span><span class="big" id="totB"></span></div></div><div class="sub" id="shareB"></div></div>
+    <div class="card"><div class="stat"><span class="sub">This month so far</span><span class="big" id="thisMonth"></span></div><div class="sub" id="avgLine"></div></div>
+  </section>
+
+  <section class="card">
+    <h2>Add savings</h2>
+    <form id="addForm">
+      <label>Month<input type="month" id="fMonth" required></label>
+      <label>Who saved<select id="fPerson"></select></label>
+      <label>Amount<input type="number" id="fAmount" min="1" step="any" inputmode="decimal" required placeholder="0"></label>
+      <label>Note (optional)<input type="text" id="fNote" maxlength="80" placeholder="e.g. bonus"></label>
+      <button id="addBtn" type="submit">Save entry</button>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2>Milestones</h2>
+    <div id="msList" class="grid"></div>
+  </section>
+
+  <section class="charts">
+    <div class="card"><h2>Progress vs. plan</h2><div class="cv"><canvas id="cLine"></canvas></div></div>
+    <div class="card"><h2>Monthly savings</h2><div class="cv"><canvas id="cBar"></canvas></div></div>
+    <div class="card"><h2>Who contributed</h2><div class="cv"><canvas id="cPie"></canvas></div></div>
+  </section>
+
+  <section class="card">
+    <h2>All entries</h2>
+    <div class="scroll"><table><thead><tr><th>Month</th><th>Who</th><th>Note</th><th class="n">Amount</th><th></th></tr></thead><tbody id="rows"></tbody></table></div>
+    <div class="empty hide" id="empty">No entries yet. Add your first month’s savings above.</div>
+  </section>
+
+  <section class="card">
+    <details id="settingsBox">
+      <summary>Goal settings</summary>
+      <form id="setForm">
+        <label>Goal name<input id="sTitle" maxlength="40"></label>
+        <label>Target amount<input id="sTarget" type="number" min="1" step="any" required></label>
+        <label>Target date<input id="sDeadline" type="month"></label>
+        <label>Currency symbol<input id="sCur" maxlength="3"></label>
+        <label>Your name<input id="sA" maxlength="20" required></label>
+        <label>Wife’s name<input id="sB" maxlength="20" required></label>
+        <label style="grid-column:1/-1">Milestone amounts (comma-separated)<input id="sMs" placeholder="100000, 250000, 500000"></label>
+        <div class="row" style="grid-column:1/-1">
+          <button type="submit">Save settings</button>
+          <button type="button" class="ghost" id="autoMs">Set milestones at 25 / 50 / 75 / 100%</button>
+        </div>
+      </form>
+    </details>
+  </section>
+</div>
+
+<script>
+/* ===== SETUP: paste your Google Apps Script web app URL here (see setup steps) ===== */
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyr8wgtM1PZjbCy_0WKH6sCve-KARzHxQqYqYILPHAYPUL1jPFFwpFxLM1kWXq9ZMuK/exec";
+/* ================================================================================== */
+
+const DEFAULTS = {title:"Our savings goal", target:500000, deadline:"", currency:"₹", names:["Me","Wife"], milestones:[125000,250000,375000,500000]};
+const $ = id => document.getElementById(id);
+const LS = "savings-tracker-v1";
+let state = {entries:[], settings:{...DEFAULTS}};
+let charts = {};
+
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const fmt = n => state.settings.currency + Math.round(n).toLocaleString("en-IN");
+const monthLabel = m => { const [y,mo]=m.split("-"); return new Date(y,mo-1,1).toLocaleString("en-US",{month:"short",year:"2-digit"}); };
+const thisMonth = () => new Date().toISOString().slice(0,7);
+const addMonths = (m,k) => { let [y,mo]=m.split("-").map(Number); mo+=k; y+=Math.floor((mo-1)/12); mo=((mo-1)%12)+1; return y+"-"+String(mo).padStart(2,"0"); };
+const diffMonths = (a,b) => { const [y1,m1]=a.split("-").map(Number),[y2,m2]=b.split("-").map(Number); return (y2-y1)*12+(m2-m1); };
+
+/* ---------- storage / sync ---------- */
+async function call(payload){
+  if(!SCRIPT_URL){ return localCall(payload); }
+  const opts = payload ? {method:"POST", body:JSON.stringify(payload)} : {};
+  const res = await fetch(SCRIPT_URL, opts);
+  const data = await res.json();
+  if(!data.ok) throw new Error(data.error||"Sheet error");
+  return data;
+}
+function localCall(p){
+  const db = JSON.parse(localStorage.getItem(LS)||'{"entries":[],"settings":null}');
+  if(p){
+    if(p.action==="add") db.entries.push({...p.entry,id:String(Date.now()+Math.random())});
+    if(p.action==="delete") db.entries=db.entries.filter(e=>e.id!==p.id);
+    if(p.action==="settings") db.settings=p.settings;
+    localStorage.setItem(LS,JSON.stringify(db));
+  }
+  return {ok:true,entries:db.entries,settings:db.settings};
+}
+function apply(data){
+  state.entries = data.entries||[];
+  state.settings = {...DEFAULTS, ...(data.settings||{})};
+  render();
+}
+async function load(){
+  $("syncState").textContent = SCRIPT_URL ? "Syncing with Google Sheet…" : "";
+  try{ apply(await call()); $("syncState").textContent = SCRIPT_URL ? "Synced with Google Sheet" : ""; }
+  catch(e){ showError("Couldn’t load from Google Sheet. Check the script URL and that access is set to “Anyone”."); }
+}
+function showError(msg){ const b=$("banner"); b.className="banner err"; b.textContent=msg; }
+async function send(payload, btn){
+  if(btn) btn.disabled=true;
+  try{ apply(await call(payload)); $("banner").className="banner hide"; $("syncState").textContent = SCRIPT_URL ? "Saved to Google Sheet" : ""; return true; }
+  catch(e){ showError("Couldn’t save to Google Sheet. Nothing was lost on the sheet; try again."); return false; }
+  finally{ if(btn) btn.disabled=false; }
+}
+
+/* ---------- calculations ---------- */
+function compute(){
+  const s=state.settings, E=[...state.entries].sort((a,b)=>a.month.localeCompare(b.month));
+  const total=E.reduce((t,e)=>t+e.amount,0);
+  const byPerson=[0,1].map(i=>E.filter(e=>e.person===s.names[i]).reduce((t,e)=>t+e.amount,0));
+  const months=[...new Set(E.map(e=>e.month))];
+  const perMonth=m=>E.filter(e=>e.month===m);
+  // date each milestone was reached
+  let run=0; const reached={};
+  const ms=[...s.milestones].sort((a,b)=>a-b);
+  for(const m of months){ run+=perMonth(m).reduce((t,e)=>t+e.amount,0); ms.forEach(v=>{ if(run>=v && !(v in reached)) reached[v]=m; }); }
+  return {E,total,byPerson,months,ms,reached};
+}
+
+/* ---------- render ---------- */
+function render(){
+  const s=state.settings, c=compute(), A=s.names[0], B=s.names[1];
+  document.title=s.title; $("title").textContent=s.title;
+  $("goalLine").textContent = "Target " + fmt(s.target) + (s.deadline ? " by " + monthLabel(s.deadline) : "");
+  $("total").textContent=fmt(c.total);
+  const pct=Math.min(100,c.total/s.target*100);
+  $("ofTarget").textContent = pct.toFixed(1)+"% of "+fmt(s.target)+(c.total<s.target?" · "+fmt(s.target-c.total)+" to go":" · goal reached");
+  $("fill").style.width=pct+"%";
+  // milestone markers on track
+  $("track").querySelectorAll(".ms").forEach(n=>n.remove());
+  c.ms.forEach(v=>{
+    const d=document.createElement("div"); const done=c.total>=v;
+    d.className="ms"+(done?" done":""); d.style.left=Math.min(100,v/s.target*100)+"%";
+    d.innerHTML=(done?"✓":"")+"<span>"+fmt(v)+"</span>"; $("track").appendChild(d);
+  });
+  // pace line
+  const now=thisMonth(); let pace="";
+  if(s.deadline && c.total<s.target){
+    const left=Math.max(1,diffMonths(now,s.deadline)+1);
+    pace = diffMonths(now,s.deadline)<0 ? "Target date has passed." : "Save about "+fmt((s.target-c.total)/left)+" a month to reach the goal on time.";
+  }
+  $("paceLine").textContent=pace;
+  // people
+  $("nameA").textContent=A; $("nameB").textContent=B;
+  $("totA").textContent=fmt(c.byPerson[0]); $("totB").textContent=fmt(c.byPerson[1]);
+  $("dotA").style.background=css("--a"); $("dotB").style.background=css("--b");
+  [0,1].forEach(i=>$(i?"shareB":"shareA").textContent = c.total? Math.round(c.byPerson[i]/c.total*100)+"% of the total":"No entries yet");
+  const tm=c.E.filter(e=>e.month===now).reduce((t,e)=>t+e.amount,0);
+  $("thisMonth").textContent=fmt(tm);
+  $("avgLine").textContent=c.months.length? "Average "+fmt(c.total/c.months.length)+" per month":"";
+  // form
+  const sel=$("fPerson"), keep=sel.value; sel.innerHTML=""; s.names.forEach(n=>{const o=document.createElement("option");o.textContent=n;sel.appendChild(o);}); if(s.names.includes(keep)) sel.value=keep;
+  if(!$("fMonth").value) $("fMonth").value=now;
+  // milestones list
+  $("msList").innerHTML = c.ms.length? c.ms.map(v=>{
+    const r=c.reached[v];
+    return '<div class="stat"><span class="big" style="font-size:22px">'+fmt(v)+'</span>'+(r?'<span><span class="chip">Achieved</span> <span class="sub">'+monthLabel(r)+'</span></span>':'<span><span class="chip todo">'+fmt(v-c.total)+' to go</span></span>')+'</div>';
+  }).join("") : '<div class="empty">No milestones yet. Add some in Goal settings.</div>';
+  // table
+  $("rows").innerHTML=[...c.E].reverse().map(e=>'<tr><td>'+monthLabel(e.month)+'</td><td>'+esc(e.person)+'</td><td>'+esc(e.note)+'</td><td class="n">'+fmt(e.amount)+'</td><td><button class="link" data-del="'+esc(e.id)+'">Delete</button></td></tr>').join("");
+  $("empty").classList.toggle("hide",c.E.length>0);
+  // settings form (only when not being edited)
+  if(!$("settingsBox").open){
+    $("sTitle").value=s.title; $("sTarget").value=s.target; $("sDeadline").value=s.deadline; $("sCur").value=s.currency;
+    $("sA").value=A; $("sB").value=B; $("sMs").value=s.milestones.join(", ");
+  }
+  drawCharts(c);
+}
+const esc = t => String(t==null?"":t).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
+
+function drawCharts(c){
+  const s=state.settings, A=s.names[0], B=s.names[1], ca=css("--a"), cb=css("--b"), grid=css("--line"), tx=css("--mute");
+  Chart.defaults.color=tx; Chart.defaults.font.family="Figtree, sans-serif";
+  Object.values(charts).forEach(ch=>ch.destroy());
+  if(!c.E.length){ charts={}; return; }
+  const first=c.months[0], last=c.months[c.months.length-1];
+  let end = s.deadline && s.deadline>last ? s.deadline : last;
+  if(diffMonths(first,end)>120) end=addMonths(first,120);
+  const labels=[]; for(let m=first;m<=end;m=addMonths(m,1)) labels.push(m);
+  const now=thisMonth(), cutoff = now>last?now:last;
+  let run=0; const actual=labels.map(m=>{ run+=c.E.filter(e=>e.month===m).reduce((t,e)=>t+e.amount,0); return m<=cutoff?run:null; });
+  const ds=[{label:"Saved",data:actual,borderColor:ca,backgroundColor:ca+"22",fill:true,tension:.25,pointRadius:3}];
+  if(s.deadline && s.deadline>first){ const n=diffMonths(first,s.deadline); ds.push({label:"Plan to target",data:labels.map(m=>Math.min(s.target,s.target*(diffMonths(first,m)+1)/(n+1))),borderColor:cb,borderDash:[6,4],pointRadius:0,fill:false}); }
+  const scales={x:{grid:{display:false}},y:{grid:{color:grid},ticks:{callback:v=>fmt(v)}}};
+  const tip={callbacks:{label:i=>" "+i.dataset.label+": "+fmt(i.parsed.y??i.parsed)}};
+  charts.line=new Chart($("cLine"),{type:"line",data:{labels:labels.map(monthLabel),datasets:ds},options:{responsive:true,maintainAspectRatio:false,scales,plugins:{tooltip:tip,legend:{position:"bottom"}}}});
+  const bl=c.months;
+  const sum=(m,n)=>c.E.filter(e=>e.month===m&&e.person===n).reduce((t,e)=>t+e.amount,0);
+  charts.bar=new Chart($("cBar"),{type:"bar",data:{labels:bl.map(monthLabel),datasets:[{label:A,data:bl.map(m=>sum(m,A)),backgroundColor:ca},{label:B,data:bl.map(m=>sum(m,B)),backgroundColor:cb}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,grid:{color:grid},ticks:{callback:v=>fmt(v)}}},plugins:{tooltip:tip,legend:{position:"bottom"}}}});
+  charts.pie=new Chart($("cPie"),{type:"doughnut",data:{labels:[A,B],datasets:[{data:c.byPerson,backgroundColor:[ca,cb],borderColor:css("--card")}]},options:{responsive:true,maintainAspectRatio:false,cutout:"62%",plugins:{tooltip:tip,legend:{position:"bottom"}}}});
+}
+
+/* ---------- events ---------- */
+$("addForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const amount=parseFloat($("fAmount").value); if(!(amount>0)) return;
+  const ok=await send({action:"add",entry:{month:$("fMonth").value,person:$("fPerson").value,amount,note:$("fNote").value.trim()}},$("addBtn"));
+  if(ok){ $("fAmount").value=""; $("fNote").value=""; }
+});
+$("rows").addEventListener("click",e=>{
+  const id=e.target.dataset.del; if(id && confirm("Delete this entry?")) send({action:"delete",id});
+});
+$("setForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const ms=$("sMs").value.split(",").map(x=>parseFloat(x.trim())).filter(x=>x>0);
+  const settings={title:$("sTitle").value.trim()||DEFAULTS.title,target:parseFloat($("sTarget").value),deadline:$("sDeadline").value,currency:$("sCur").value||"₹",names:[$("sA").value.trim(),$("sB").value.trim()],milestones:ms};
+  $("settingsBox").open=false;
+  await send({action:"settings",settings});
+});
+$("autoMs").addEventListener("click",()=>{ const t=parseFloat($("sTarget").value)||0; $("sMs").value=[.25,.5,.75,1].map(p=>Math.round(t*p)).join(", "); });
+matchMedia("(prefers-color-scheme:dark)").addEventListener("change",()=>render());
+
+if(!SCRIPT_URL){ const b=$("banner"); b.className="banner"; b.textContent="Practice mode: entries are saved only in this browser. Add your Google Apps Script URL in index.html to sync with your Google Sheet."; }
+load();
+</script>
+</body>
+</html>
